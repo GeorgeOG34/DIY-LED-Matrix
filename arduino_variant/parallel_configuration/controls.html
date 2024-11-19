@@ -1,0 +1,131 @@
+<html>
+<body>
+<div id="status">Not connected</div>
+<button id="connectButton">Connect</button>
+<BR>
+<button id="switchButton" disabled>SWITCH</button>
+<button id="flashButton" disabled>FLASH</button>
+<button id="levelsButton" disabled>LEVELS</button>
+<BR>
+<button id="redButton" disabled>Red</button>
+<button id="greenButton" disabled>Green</button>
+<button id="blueButton" disabled>Blue</button>
+<BR>
+<button id="peakToPeakAmpButton" disabled>PEAK_TO_PEAK_AMPLITUDE</button>
+<button id="fftAnalysisButton" disabled>FFT_ANALYSIS</button>
+<button id="fftBucketsButton" disabled>FFT_BUCKETS</button>
+<button id="noAnalysisButton" disabled>no analysis</button>
+<BR>
+<button id="noneButton" disabled>NONE</button>
+<button id="squareButton" disabled>SQUARE</button>
+<button id="firstButton" disabled>FIRST</button>
+
+<script>
+    const SERVICE_UUID = "f05fd76c-2716-4f2c-b8a2-6aeeb421670d";
+    const CHARACTERISTIC_UUIDS = {
+        VISUALISATION: "e03b9efb-a036-4585-a50b-bd38b7b95c5b",
+        ANALYSIS: "48a703f9-1a7f-4d1f-8e2c-0957d3f47740",
+        COLOUR: "da3f3e57-b5f1-49ed-9a5f-8267cd36b932",
+        SHAPE: "cf18dca6-b528-4034-830e-8175f76aaacb"
+    };
+
+    let device = null;
+    let characteristics = {};
+
+    const statusLabel = document.getElementById("status");
+    const connectButton = document.getElementById("connectButton");
+    const switchButton = document.getElementById("switchButton");
+    const flashButton = document.getElementById("flashButton");
+    const levelsButton = document.getElementById("levelsButton");
+
+
+    const redButton = document.getElementById("redButton");
+    const greenButton = document.getElementById("greenButton");
+    const blueButton = document.getElementById("blueButton");
+
+    const peakToPeakAmpButton = document.getElementById("peakToPeakAmpButton");
+    const fftAnalysisButton = document.getElementById("fftAnalysisButton");
+    const fftBucketsButton = document.getElementById("fftBucketsButton");
+    const noAnalysisButton = document.getElementById("noAnalysisButton");
+
+    const noneButton = document.getElementById("noneButton");
+    const squareButton = document.getElementById("squareButton");
+    const firstButton = document.getElementById("firstButton");
+
+    async function connectDevice() {
+        try {
+            statusLabel.textContent = "scanning";
+            //This triggers the chrome to get out device.
+            device = await navigator.bluetooth.requestDevice({
+                filters: [{ name: "gmo22" }],
+                optionalServices: [SERVICE_UUID]
+            });
+
+            statusLabel.textContent = `connecting`;
+
+            const server = await device.gatt.connect();
+            const service = await server.getPrimaryService(SERVICE_UUID);
+
+            // get all characteristics and store them in the characteristics map
+            for (const [key, uuid] of Object.entries(CHARACTERISTIC_UUIDS)) {
+                characteristics[key] = await service.getCharacteristic(uuid);
+            }
+
+            statusLabel.textContent = `Connected`;
+            // enable all buttons once  we have connected
+            switchButton.disabled = false;
+            flashButton.disabled = false;
+            levelsButton.disabled = false;
+            redButton.disabled = false;
+            greenButton.disabled = false;
+            blueButton.disabled = false;
+            peakToPeakAmpButton.disabled = false;
+            fftAnalysisButton.disabled = false;
+            fftBucketsButton.disabled = false;
+            noneButton.disabled = false;
+            squareButton.disabled = false;
+            firstButton.disabled = false;
+            noAnalysisButton.disabled = false;
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    // since were sending string we gotta encode the data
+    async function writeData(value, characteristicKey) {
+        if (!characteristics[characteristicKey]) {
+            statusLabel.textContent = "not available.";
+            return;
+        }
+
+        try {
+            statusLabel.textContent = "sending..";
+            const encoder = new TextEncoder();
+            await characteristics[characteristicKey].writeValue(encoder.encode(value));
+            statusLabel.textContent = "done!";
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    connectButton.addEventListener("click", connectDevice);
+    switchButton.addEventListener("click", () => writeData("SWITCH", "VISUALISATION"));
+    flashButton.addEventListener("click", () => writeData("FLASH", "VISUALISATION"));
+    levelsButton.addEventListener("click", () => writeData("LEVELS", "VISUALISATION"));
+
+    redButton.addEventListener("click", () => writeData("red", "COLOUR"));
+    greenButton.addEventListener("click", () => writeData("green", "COLOUR"));
+    blueButton.addEventListener("click", () => writeData("blue", "COLOUR"));
+
+    peakToPeakAmpButton.addEventListener("click", () => writeData("PEAK_TO_PEAK_AMPLITUDE", "ANALYSIS"));
+    fftAnalysisButton.addEventListener("click", () => writeData("FFT_DOMINANT", "ANALYSIS"));
+    fftBucketsButton.addEventListener("click", () => writeData("FFT_BUCKETS", "ANALYSIS"));
+    noAnalysisButton.addEventListener("click", () => writeData("NOOOONE", "ANALYSIS"));
+
+    noneButton.addEventListener("click", () => writeData("none", "SHAPE"));
+    squareButton.addEventListener("click", () => writeData("square", "SHAPE"));
+    firstButton.addEventListener("click", () => writeData("first", "SHAPE"));
+
+</script>
+</body>
+</html>
